@@ -1,0 +1,65 @@
+{
+  "id": "database-query-tool",
+  "name": "Database Query Tool",
+  "description": "Use this tool to retrieve, filter, or sort your grocery purchase records based on specific criteria such as store, category, price range, or date. Always provide a value for every field. If the user does not specify a value for a filter, you must use the 'Default Value' listed in the input schema to ensure the search remains unrestricted. Perfect for questions like 'How much did I spend at Kaufland in January?', 'List all items in the Pantry category', or 'What were my most expensive purchases?'.",
+  "inputs": [
+    {
+      "name": "store",
+      "type": "string",
+      "required": false,
+      "description": "The store name. If not specified, use 'ALL'.",
+      "default": "ALL"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "required": false,
+      "description": "The product category. Must be one of: Fruits & Vegetables, Bakery, Dairy & Eggs, Meat, Cold Cuts & Fish, Beverages, Pantry & Dry Goods, Frozen & Chilled, Sweets & Snacks, Breakfast & Spreads, Household & Personal Care, Pet Food, Organic & Health, International, Pfand & Deposits, Discounts. If not specified, use 'ALL'.",
+      "default": "ALL"
+    },
+    {
+      "name": "min_price",
+      "type": "number",
+      "required": false,
+      "description": "Min total_price. Use '0' if not specified.",
+      "default": 0
+    },
+    {
+      "name": "max_price",
+      "type": "number",
+      "required": false,
+      "description": "Max total_price. Use '99999' if not specified.",
+      "default": 99999
+    },
+    {
+      "name": "start_date",
+      "type": "string",
+      "required": false,
+      "description": "Start date (YYYY-MM-DD). If not specified, use '1900-01-01'.",
+      "default": "1900-01-01"
+    },
+    {
+      "name": "end_date",
+      "type": "string",
+      "required": false,
+      "description": "End date (YYYY-MM-DD). If not specified, use '2099-12-31'.",
+      "default": "2099-12-31"
+    },
+    {
+      "name": "sort_by",
+      "type": "string",
+      "required": false,
+      "description": "Field to sort by. If not specified, use 'purchase_date'.",
+      "default": "purchase_date"
+    },
+    {
+      "name": "sort_order",
+      "type": "string",
+      "required": false,
+      "description": "Order of sort. Use 'asc' or 'desc'. If not specified, use 'desc'.",
+      "default": "desc",
+      "enum": ["asc", "desc"]
+    }
+  ],
+  "workflowId": "L42gLmsXii0dRRPT"
+}

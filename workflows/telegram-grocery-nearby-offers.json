@@ -1,0 +1,437 @@
+{
+  "name": "telegram-grocery-nearby-offers",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "zipCode",
+              "type": "number"
+            },
+            {
+              "name": "itemName"
+            },
+            {
+              "name": "storeArray",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        432
+      ],
+      "id": "2aaeaab9-463a-495d-98a5-59f390e0194c",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "981cf1f1-5d03-4970-9ca3-0644051701a6",
+              "name": "store",
+              "value": "={{ $('Split Out').item.json.advertisers[0].name }}",
+              "type": "string"
+            },
+            {
+              "id": "630d3f18-9b8b-44aa-91c6-185ccbb6a504",
+              "name": "valid until",
+              "value": "={{ $json.expiryDate }}",
+              "type": "string"
+            },
+            {
+              "id": "166566c7-440d-4f1a-a9f1-4a611d2e2703",
+              "name": "price",
+              "value": "={{ $('Split Out').item.json.price }}",
+              "type": "string"
+            },
+            {
+              "id": "ee886671-7097-42b9-9027-7af0692f38be",
+              "name": "product",
+              "value": "={{ $('Split Out').item.json.brand.name }} {{ $('Split Out').item.json.product.name }}",
+              "type": "string"
+            },
+            {
+              "id": "65e34795-e6fd-4d38-a649-2a0afcf0fbda",
+              "name": "description",
+              "value": "={{ $('Split Out').item.json.description }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        432
+      ],
+      "id": "0b666030-5713-4efa-9169-cce3cb5de0c6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json.validityDates[0].to }}",
+        "format": "yyyy-MM-dd",
+        "outputFieldName": "expiryDate",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        432
+      ],
+      "id": "1da05d24-087b-4f3c-b18b-d337e1afee58",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        432
+      ],
+      "id": "2c016edd-01dc-4035-81e6-5903197dc3b3",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/telegram-grocery-assistant-data/project_vars.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        352
+      ],
+      "id": "168d60c3-54de-4a8a-98ae-e5a6f7e8a286",
+      "name": "read project vars"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        352
+      ],
+      "id": "dd4d0b1f-29d8-439a-a0f0-68961e0f72c3",
+      "name": "project_vars"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.data.offers_api_url }}/offers/{{ $('When Executed by Another Workflow').item.json.itemName }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"zipCode\": \"{{$('When Executed by Another Workflow').item.json.zipCode}}\",\n  \"limit\": \"20\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        976,
+        256
+      ],
+      "id": "6a8b0c54-fd95-4f7e-b9a2-2c6f80441b0a",
+      "name": "all stores"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3d49fcbe-4cc1-4ae8-9970-952dcc1c10b2",
+              "leftValue": "={{ $('When Executed by Another Workflow').item.json.storeArray[0] }}",
+              "rightValue": "ALL",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        784,
+        352
+      ],
+      "id": "8b3e386c-1f68-44bc-8d61-4affe64edd90",
+      "name": "If specific stores"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.data.offers_api_url }}/offers/{{ $('When Executed by Another Workflow').item.json.itemName }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"zipCode\": \"{{$('When Executed by Another Workflow').item.json.zipCode}}\",\n  \"allowedRetailers\": {{ JSON.stringify($('When Executed by Another Workflow').item.json.storeArray) }},\n  \"limit\": \"20\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        976,
+        432
+      ],
+      "id": "b81847c5-35c9-4f05-8f79-d45a4324d113",
+      "name": "specific stores"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3d49fcbe-4cc1-4ae8-9970-952dcc1c10b2",
+              "leftValue": "={{ $json.data }}",
+              "rightValue": "ALL",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1168,
+        336
+      ],
+      "id": "1b30ef7a-27a4-4193-a602-5ffd17d7a7a5",
+      "name": "If no results"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8510dcbd-9e39-432f-b8e3-e916dd1918b6",
+              "name": "message",
+              "value": "the request was received but returned no results",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1408,
+        256
+      ],
+      "id": "2a435c29-e833-4498-bd4d-7ce4d2e95c3a",
+      "name": "message"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "zipCode": 60326,
+          "itemName": "milch",
+          "storeArray": [
+            "REWE",
+            "EDEKA",
+            "lidl"
+          ]
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "read project vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read project vars": {
+      "main": [
+        [
+          {
+            "node": "project_vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "project_vars": {
+      "main": [
+        [
+          {
+            "node": "If specific stores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "all stores": {
+      "main": [
+        [
+          {
+            "node": "If no results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If specific stores": {
+      "main": [
+        [
+          {
+            "node": "all stores",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "specific stores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "specific stores": {
+      "main": [
+        [
+          {
+            "node": "If no results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If no results": {
+      "main": [
+        [
+          {
+            "node": "message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "3f1d3bcf-f5c5-4bd0-9496-689d0620b109",
+  "meta": {
+    "instanceId": "62dd45111b6dfe563b93c2ec57632c8b7008513075549940653e8e75585890a2"
+  },
+  "id": "d4x8zMtrwkBLK2rF",
+  "tags": [
+    {
+      "updatedAt": "2026-03-22T10:33:13.477Z",
+      "createdAt": "2026-03-22T10:33:13.477Z",
+      "id": "a7CLUAUl3uuJAC4s",
+      "name": "telegram-grocery"
+    }
+  ]
+}

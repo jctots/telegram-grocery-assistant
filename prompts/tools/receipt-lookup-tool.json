@@ -1,0 +1,31 @@
+{
+  "id": "receipt-lookup-tool",
+  "name": "Receipt Lookup Tool",
+  "description": "Tool for fetching receipt information. Use start_date and end_date as YYYY-MM-DD strings. Example: for March 2026, use start_date: '2026-03-01' and end_date: '2026-03-31'.",
+  "inputs": [
+    {
+      "name": "start_date",
+      "type": "string",
+      "required": false,
+      "description": "Start date (YYYY-MM-DD). If not specified, use '1900-01-01'.",
+      "default": "1900-01-01",
+      "pattern": "YYYY-MM-DD"
+    },
+    {
+      "name": "end_date",
+      "type": "string",
+      "required": false,
+      "description": "End date (YYYY-MM-DD). If not specified, use '2099-12-31'.",
+      "default": "2099-12-31",
+      "pattern": "YYYY-MM-DD"
+    },
+    {
+      "name": "store_name",
+      "type": "string",
+      "required": false,
+      "description": "The store name. If not specified, use 'ALL'.",
+      "default": "ALL"
+    }
+  ],
+  "workflowId": "7fxrvcR0rpRVD3p1"
+}

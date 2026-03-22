@@ -1,0 +1,202 @@
+{
+  "name": "telegram-grocery-vector-search",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            },
+            {
+              "name": "top_k",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        16
+      ],
+      "id": "379b954b-1f50-4793-ab21-123ff2e241be",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "resource": "search",
+        "operation": "queryPoints",
+        "collectionName": {
+          "__rl": true,
+          "value": "grocery-assistant",
+          "mode": "list",
+          "cachedResultName": "grocery-assistant"
+        },
+        "query": "={\n  \"nearest\": {{ JSON.stringify($json.embedding.values) }}\n}",
+        "scoreThreshold": 0.5,
+        "limit": "={{ $json.top_k }}",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-qdrant.qdrant",
+      "typeVersion": 1,
+      "position": [
+        768,
+        16
+      ],
+      "id": "41271176-138f-49f7-aa66-1ee8aade1cbc",
+      "name": "Query Points",
+      "alwaysOutputData": true,
+      "credentials": {
+        "qdrantRestApi": {
+          "id": "OVbOfpAsRTGZ7kXG",
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={{ $('project_vars').item.json.data.google_ai_studio_api_key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ { \"parts\": [ { \"text\":  $('When Executed by Another Workflow').item.json.query } ] } }}"
+            },
+            {
+              "name": "outputDimensionality",
+              "value": "768"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        16
+      ],
+      "id": "3cf843d9-ed57-4ef6-a130-e5376f0b8a7a",
+      "name": "embeddings"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/telegram-grocery-assistant-data/project_vars.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        16
+      ],
+      "id": "67d5e476-36b5-4583-9a87-b1d23f1505b4",
+      "name": "read project vars"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        16
+      ],
+      "id": "84c2b38a-edd3-460b-8321-4049431b5751",
+      "name": "project_vars"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "granola",
+          "top_k": 5
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "read project vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "embeddings": {
+      "main": [
+        [
+          {
+            "node": "Query Points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read project vars": {
+      "main": [
+        [
+          {
+            "node": "project_vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "project_vars": {
+      "main": [
+        [
+          {
+            "node": "embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "zWhcjw3kSAmdZ1ok",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "8e972d24-0b0f-45a5-a37a-5895713d6d6b",
+  "meta": {
+    "instanceId": "62dd45111b6dfe563b93c2ec57632c8b7008513075549940653e8e75585890a2"
+  },
+  "id": "4tndtMCaTjosL7K9",
+  "tags": [
+    {
+      "updatedAt": "2026-03-22T10:33:13.477Z",
+      "createdAt": "2026-03-22T10:33:13.477Z",
+      "id": "a7CLUAUl3uuJAC4s",
+      "name": "telegram-grocery"
+    }
+  ]
+}

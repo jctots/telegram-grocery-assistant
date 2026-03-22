@@ -1,0 +1,165 @@
+{
+  "name": "telegram-grocery-show-receipt",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "receipt_hash"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/home/node/.n8n-files/telegram-grocery-assistant-data/grocery-receipts/{{ $('When Executed by Another Workflow').item.json.receipt_hash }}.png",
+        "options": {
+          "fileName": "receipt.png"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        352
+      ],
+      "id": "1e889454-6f93-4b20-913d-9cc5fa6a8709",
+      "name": "Read image"
+    },
+    {
+      "parameters": {
+        "operation": "sendDocument",
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        352
+      ],
+      "id": "dfb1501d-0a3a-443b-93fb-df159c8fec04",
+      "name": "Send a document",
+      "webhookId": "4ec398a7-b420-4092-80ac-52f737449a88",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/telegram-grocery-assistant-data/project_vars.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        352
+      ],
+      "id": "36c3d3ef-7933-4e49-9041-14bba7ee8246",
+      "name": "read project vars"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        352
+      ],
+      "id": "4b838a46-6808-46e1-b24c-bded4f210311",
+      "name": "project_vars"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "receipt_hash": "0764ce13cc92351ada63fa7bcf08ef9d"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "read project vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read image": {
+      "main": [
+        [
+          {
+            "node": "Send a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read project vars": {
+      "main": [
+        [
+          {
+            "node": "project_vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "project_vars": {
+      "main": [
+        [
+          {
+            "node": "Read image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "9bcde22e-5b65-43d0-b1a8-2b267dbcaa33",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62dd45111b6dfe563b93c2ec57632c8b7008513075549940653e8e75585890a2"
+  },
+  "id": "C0JcbVypkrbUTPIr",
+  "tags": [
+    {
+      "updatedAt": "2026-03-22T10:33:13.477Z",
+      "createdAt": "2026-03-22T10:33:13.477Z",
+      "id": "a7CLUAUl3uuJAC4s",
+      "name": "telegram-grocery"
+    }
+  ]
+}

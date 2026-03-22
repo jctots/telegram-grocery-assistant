@@ -1,0 +1,21 @@
+{
+  "id": "similarity-search-tool",
+  "name": "Similarity Search Tool",
+  "description": "Use this tool to search for grocery items or products within the user's purchase history. This tool is effective for finding items by name, category, or general description (e.g., 'What was the price of the ketchup I bought?'). It performs a semantic search against the product database.",
+  "inputs": [
+    {
+      "name": "query",
+      "type": "string",
+      "required": true,
+      "description": "A detailed description or the name of the product you are looking for. Example: 'Italian pasta sauce' or 'Organic snacks'."
+    },
+    {
+      "name": "top_k",
+      "type": "number",
+      "required": true,
+      "description": "The maximum number of relevant items to return. Use a low number (e.g., 2–3) for specific, direct answers. Use a higher number (e.g., 5–10) if the user is asking for a list or browsing options.",
+      "guidance": "2-3 for specific queries, 5-10 for lists"
+    }
+  ],
+  "workflowId": "4tndtMCaTjosL7K9"
+}

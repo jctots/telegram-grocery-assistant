@@ -1,0 +1,2454 @@
+{
+  "name": "telegram-grocery-main-flow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        2176,
+        -256
+      ],
+      "id": "c10939ee-ebe8-45a9-b9bc-f4203871916a",
+      "name": "Compression"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('project_vars').item.json.data.strling_pdf_url}}/api/v1/convert/pdf/img",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/pdf"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fileId",
+              "value": "string"
+            },
+            {
+              "name": "pageNumbers",
+              "value": "all"
+            },
+            {
+              "name": "imageFormat",
+              "value": "png"
+            },
+            {
+              "name": "singleOrMultiple",
+              "value": "multiple"
+            },
+            {
+              "name": "colorType",
+              "value": "color"
+            },
+            {
+              "name": "dpi",
+              "value": "300"
+            },
+            {
+              "name": "includeAnnotations",
+              "value": "false"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "fileInput",
+              "inputDataFieldName": "={{ $('Get a file').item.binary.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2016,
+        -256
+      ],
+      "id": "be6c0f18-42d7-48bb-9607-b5d7ce6bc593",
+      "name": "pdf to img zipped"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.document.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        -160
+      ],
+      "id": "1cf7d3c7-54b3-49f8-9a11-4876d2e53edb",
+      "name": "Get a file",
+      "webhookId": "1998888c-c0c6-41f1-a51b-f476650b3af1",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "PDF file received! Extracting image...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1840,
+        -256
+      ],
+      "id": "225771e5-0550-4e33-bcc7-7bc82ae07f8a",
+      "name": "notify OCR start",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        368
+      ],
+      "id": "6e8dc412-19f5-4d74-8edd-1e7439586e2c",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "maxOutputTokens": 2048,
+          "temperature": 0,
+          "topP": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        -48
+      ],
+      "id": "2fd88b9a-07e7-494a-9222-54ba0ab43fc6",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QExLHRDNJ9d9H7P5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Role: You are a high-precision document digitization engine specializing in complex receipt layouts.\n\nTask: Perform a verbatim OCR transcription of the attached image. Your goal is to preserve the visual and logical structure of the text so that a downstream AI can analyze the purchase data.\n\nRequirements:\n\n    Verbatim Accuracy: Do not correct spelling, do not expand abbreviations, and do not omit any text (including logos, dates, or footer gibberish).\n\n    Spatial Preservation: Use a combination of spaces and newlines to mimic the physical layout of the receipt. If a price is on the far right of an item name, use spacing to reflect that gap.\n\n    Columnar Alignment: Ensure that items, quantities, and prices remain on their respective lines as they appear in the image.\n\n    No Markdown Tables: Provide the output as plain text within a code block. Do not use Markdown table syntax, as this can sometimes cause the model to \"hallucinate\" a structure that isn't there.\n\n    No Commentary: Do not provide an introduction or a summary. Output only the transcribed text.\n\nVery important: do not skip any information ",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary",
+              "binaryImageDataKey": "ocr_image",
+              "imageDetail": "high"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2560,
+        -256
+      ],
+      "id": "2cf1f2b1-8007-4ec0-87df-f70f2d768c80",
+      "name": "LLM OCR"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a precise data extraction agent specializing in grocery receipts. Your goal is to extract itemized data from the provided text/image and return a clean JSON array.\nImportant: check first of the receipt is coming from local German grocery store (REWE, Kaufland, etc.). if not, stop the analysis and return \"not a grocery receipt\" immediately.\n\nExtraction Rules:\n    * Translation: Translate every name_de (German) to a clear, concise English name for name_en.\n    * Deduplication & Aggregation: If there are multiple separate lines for the exact same item (identical German name, unit, and unit price), you MUST combine them into a single object. Sum their quantities for the new `qty`, and sum their total prices for the new `total_price`. Example: If you see two separate lines for \"Vollmilch\" at 1.50 each, output only one item with `qty`: 2.0, `unit_price`: 1.50, and `total_price`: 3.00.\n    * Pfand & Leergut (Deposits & Returns): Treat \"Pfand\" (bottle deposit) and \"Leergut\" (returned bottles) as completely separate items. Do NOT add the Pfand to the beverage's price. For \"Leergut\" or returned items, the `total_price` and `unit_price` MUST be negative numbers (e.g., -3.00). Categorize these as \"Pfand & Deposits\".\n    * Rabatt (Discounts): \n        * Item-level: If a discount (\"Rabatt\", \"Aktion\") appears immediately beneath an item, subtract the discount from that item's `total_price` and recalculate the `unit_price`. Do not output the discount as a separate item.\n        * Cart-level: If a discount applies to the whole receipt, output it as a separate item with a negative `total_price` and categorize it as \"Discounts\".\n    * Math (Unit Price): You MUST calculate the unit_price. \n        * Formula: total_price / qty. \n        * Example: If 2 packs of milk cost 3.00, return unit_price: 1.50, total_price: 3.00, and qty: 2.0.\n    * Numeric Only: Fields unit_price, total_price, and qty must be Numbers (Float). Do not include currency symbols (€) or text.\n    * Standardize Units: Use lowercase labels: kg, liters, grams, pieces, pack, or bundle.\n    * Dates: Extract the receipt date and format it as YYYY-MM-DD.\n    * Categorization: Assign one of the following: [Fruits & Vegetables, Bakery, Dairy & Eggs, Meat, Cold Cuts & Fish, Beverages, Pantry & Dry Goods, Frozen & Chilled, Sweets & Snacks, Breakfast & Spreads, Household & Personal Care, Pet Food, Organic & Health, International, Pfand & Deposits, Discounts]\n\nOutput Format:\nReturn ONLY a raw JSON array. No conversational text. No markdown blocks. No backticks.\n\n{\n  \"receipt_number_of_items\": Integer,\n  \"receipt_store_name\": \"String\",\n  \"receipt_datetime\": \"YYYY-MM-DDTHH:mm\",\n  \"receipt_total\": Float,\n  \"items\": [\n    {\n      \"name_en\": \"String\",\n      \"name_de\": \"String\",\n      \"category\": \"String\",\n      \"store\": \"String\",\n      \"unit_price\": Float,\n      \"total_price\": Float,\n      \"qty\": Float,\n      \"unit\": \"String\",\n      \"purchase_date\": \"YYYY-MM-DD\",\n      \"receipt_hash\": null\n    }\n  ]\n}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "={{ $('aggregate').item.json.combinedText }}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        3024,
+        -256
+      ],
+      "id": "8e26436c-0113-4dbb-bc89-f61fc35fd3ea",
+      "name": "payload extraction"
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3776,
+        368
+      ],
+      "id": "f7940967-534a-4c18-a08b-1e18879ff2aa",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 0.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3968,
+        480
+      ],
+      "id": "984fd795-6f94-4dd9-ad58-2f7d483a62dd",
+      "name": "Wait",
+      "webhookId": "41d1feb1-873b-4fdf-880b-f8e5f2d7c379"
+    },
+    {
+      "parameters": {
+        "resource": "point",
+        "operation": "upsertPoints",
+        "collectionName": {
+          "__rl": true,
+          "value": "grocery-assistant",
+          "mode": "list",
+          "cachedResultName": "grocery-assistant"
+        },
+        "points": "=[\n  {\n    \"id\": \"{{ $('item hash').item.json.data }}\",\n    \"vector\": {{ JSON.stringify($json.embedding.values) }},\n    \"payload\": {\n      \"name_en\": \"{{ $('Wait').item.json.name_en }}\",\n      \"name_de\": \"{{ $('Wait').item.json.name_de }}\",\n      \"category\": \"{{ $('Wait').item.json.category }}\",\n      \"unit_price\": {{ $('Wait').item.json.unit_price }},\n      \"total_price\": {{ $('Wait').item.json.total_price }},\n      \"qty\": {{ $('Wait').item.json.qty }},\n      \"unit\": \"{{ $('Wait').item.json.unit }}\",\n      \"store\": \"{{ $('Wait').item.json.store }}\",\n      \"purchase_date\": \"{{ $('Wait').item.json.purchase_date }}\",\n      \"receipt_hash\": \"{{ $('receipt hash').item.json.data }}\"\n    }\n  }\n]",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-qdrant.qdrant",
+      "typeVersion": 1,
+      "position": [
+        4544,
+        480
+      ],
+      "id": "e7b8ebaa-aa2a-4cec-ae72-df553ed982a0",
+      "name": "Upsert Points",
+      "credentials": {
+        "qdrantRestApi": {
+          "id": "OVbOfpAsRTGZ7kXG",
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={{ $('project_vars').item.json.data.google_ai_studio_api_key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ { \"parts\": [ { \"text\": $json.name_en+\" \"+$json.category } ] } }}"
+            },
+            {
+              "name": "outputDimensionality",
+              "value": "768"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4336,
+        480
+      ],
+      "id": "956f1af3-ab5d-4c13-a4a6-03c19ce9a85f",
+      "name": "embeddings",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "=Start saving purchases...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3216,
+        368
+      ],
+      "id": "7acb18b4-504a-4b4a-84e6-6f4898d9af10",
+      "name": "notify upsert start",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "=Purchases saved!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4544,
+        272
+      ],
+      "id": "d4b17905-d7c8-494c-9ab1-5c02e8b2c011",
+      "name": "notify upsert done",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0cf5757d-fde9-444f-aecd-3fbd96dd19fa",
+              "name": "data",
+              "value": "={{JSON.parse($('payload extraction').item.json.text).items  }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3392,
+        368
+      ],
+      "id": "bec5c6dc-3b1b-4dea-90b7-764ae63fe65a",
+      "name": "array_parsing"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3968,
+        272
+      ],
+      "id": "63a29b76-b59b-40f5-805d-624c66396498",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-pro-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3024,
+        -48
+      ],
+      "id": "9dfce339-9bbf-402a-856c-328347fab795",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QExLHRDNJ9d9H7P5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').first().json.message.text }}",
+        "options": {
+          "systemMessage": "=You are a helpful assistant answering questions about past or potential grocery items. If the user is not asking about grocery items, remind the user that he can upload PDF, photo or screenshoot of the grocery receipts\n\nThe current date and time is {{ $now }} When a user asks about dates (e.g., 'last time', 'this month', 'in March'), calculate the dates relative to this date. If the user does not specify a year, assume the year is the year today\n\nWhen mentioning dates to the user, use the format [DD Mmm YYYY], but if date is current year, use format [DD Mmm].\n\nUse the connected tools to search the item database which contains details about particular purchased items, or receipt database which contains details about a particular purchase event.\n\nAlways format your output using Telegram-compatible HTML tags only: use <b> for bold and <i> for italics. Do not use list tags like <ul>, <ol>, or <li>, as Telegram does not support them. Instead, use a simple bullet character '•' at the start of each line for lists.",
+          "maxIterations": 20
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1680,
+        176
+      ],
+      "id": "2589a8f2-0bc1-49c6-974a-f182dc8ed0d6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-pro-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        432
+      ],
+      "id": "ecd466ec-f078-4df3-99b2-5b87c01e79fd",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QExLHRDNJ9d9H7P5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2064,
+        176
+      ],
+      "id": "bbc10d99-86c6-42bb-8c57-82a25e7c26fd",
+      "name": "send response",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to retrieve, filter, or sort your grocery purchase records based on specific criteria such as store, category, price range, or date. Always provide a value for every field. If the user does not specify a value for a filter, you must use the 'Default Value' listed in the input schema to ensure the search remains unrestricted. Perfect for questions like 'How much did I spend at Kaufland in January?', 'List all items in the Pantry category', or 'What were my most expensive purchases?'.",
+        "workflowId": {
+          "__rl": true,
+          "value": "L42gLmsXii0dRRPT",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/L42gLmsXii0dRRPT",
+          "cachedResultName": "telegram-grocery-database-query"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "min_price": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('min_price', `Min total_price. Use '0' if not specified.`, 'number') }}",
+            "max_price": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('max_price', `Max total_price. Use '99999' if not specified.`, 'number') }}",
+            "store": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('store', `The store name. If not specified, use 'ALL'.`, 'string') }}",
+            "category": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('category', `The product category. It should be one of the following: Categorization: Assign one of the following: [Fruits & Vegetables, Bakery, Dairy & Eggs, Meat, Cold Cuts & Fish, Beverages, Pantry & Dry Goods, Frozen & Chilled, Sweets & Snacks, Breakfast & Spreads, Household & Personal Care, Pet Food, Organic & Health, International, Pfand & Deposits, Discounts]. If not specified, use 'ALL'.`, 'string') }}",
+            "start_date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('start_date', `Start date (YYYY-MM-DD). If not specified, use '1900-01-01'.`, 'string') }}",
+            "end_date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('end_date', `End date (YYYY-MM-DD). If not specified, use '2099-12-31'.`, 'string') }}",
+            "sort_by": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sort_by', `Field to sort by. If not specified, use 'purchase_date'.`, 'string') }}",
+            "sort_order": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sort_order', `Order of sort. Use 'asc' or 'desc'. If not specified, use 'desc'.`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "store",
+              "displayName": "store",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "min_price",
+              "displayName": "min_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "max_price",
+              "displayName": "max_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "start_date",
+              "displayName": "start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "end_date",
+              "displayName": "end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sort_by",
+              "displayName": "sort_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sort_order",
+              "displayName": "sort_order",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1888,
+        432
+      ],
+      "id": "17c80a1b-a0ff-46c9-b033-30c338af3c41",
+      "name": "Database Query Tool"
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1472,
+        176
+      ],
+      "id": "33a4c108-d665-4a9c-a181-5ce8269882f8",
+      "name": "Send a chat action",
+      "webhookId": "a7685888-8d38-491f-bd71-33be00040a2c",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.update_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1536,
+        432
+      ],
+      "id": "e77e4b95-155d-4816-ad68-228bd0203512",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "content": "## Roadmap\n\n- self-correcting OCR checks/loop instead of notification only\n- upload as AI Agent tool\n\n- use redis for project variables?",
+        "height": 304,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2592,
+        320
+      ],
+      "typeVersion": 1,
+      "id": "fefc7f8e-e4cd-4534-82ff-860234d52f67",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "=Performing OCR...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2576,
+        -416
+      ],
+      "id": "0e98b1c9-5d73-4f40-bdaf-e8b2d9a4d7fb",
+      "name": "notify OCR",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2400,
+        -416
+      ],
+      "id": "1e4f1b25-a51d-46c9-8a1c-152288365e3b",
+      "name": "Send a chat action1",
+      "webhookId": "a7685888-8d38-491f-bd71-33be00040a2c",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3040,
+        -432
+      ],
+      "id": "538131f5-8066-49e4-a570-f27db8128aa5",
+      "name": "Send a chat action2",
+      "webhookId": "a7685888-8d38-491f-bd71-33be00040a2c",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "=Analyzing OCR data...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3200,
+        -432
+      ],
+      "id": "11058a83-8702-44fc-90b1-dcc287455419",
+      "name": "notify OCR1",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "=I have extracted {{ JSON.parse($('payload extraction').item.json.text).receipt_number_of_items }} items from your {{ JSON.parse($('payload extraction').item.json.text).receipt_store_name }} receipt on {{ $json.formattedDate }}, with a calculated total of €{{ $('check').item.json.calculated_sum }}. The total mentioned on receipt is €{{ JSON.parse($('payload extraction').item.json.text).receipt_total }}.\n\nFirst 3 items: {{ JSON.parse($('payload extraction').item.json.text).items[0].name_de }}, {{ JSON.parse($('payload extraction').item.json.text).items[1]?.name_de || 'N/A' }}, {{ JSON.parse($('payload extraction').item.json.text).items[2]?.name_de || 'N/A' }}\n\nWould you like to proceed?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Approve",
+                    "additionalFields": {
+                      "callback_data": "=approve_{{ $execution.resumeUrl }}"
+                    }
+                  },
+                  {
+                    "text": "❌ Decline",
+                    "additionalFields": {
+                      "callback_data": "=decline_{{ $execution.resumeUrl }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3936,
+        16
+      ],
+      "id": "63c77010-e363-4a2f-884a-ed9bdead43fa",
+      "name": "confirm",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $('Telegram Trigger').item.json.callback_query.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        -560
+      ],
+      "id": "dcfba660-7a54-4d12-88f1-f6d754f26b29",
+      "name": "Answer Query a callback",
+      "webhookId": "51499632-dc74-44e9-8614-1daa70b261f4",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Telegram Trigger').item.json.callback_query.data.split('_')[1] }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "={{ $('Telegram Trigger').item.json.callback_query.data.split('_')[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1648,
+        -560
+      ],
+      "id": "3e3fdb80-2588-407b-8769-3ae589f35b79",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "type": "MD5",
+        "value": "={{ JSON.parse($('payload extraction').item.json.text).receipt_store_name+\"_\"+JSON.parse($('payload extraction').item.json.text).receipt_datetime+\"_\"+JSON.parse($('payload extraction').item.json.text).receipt_total }} "
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        3744,
+        -240
+      ],
+      "id": "cec522e6-c476-4c86-9397-f20a8f4729ec",
+      "name": "receipt hash"
+    },
+    {
+      "parameters": {
+        "type": "MD5",
+        "value": "={{ $json.name_en+\"_\"+$json.total_price+\"_\"+$json.purchase_date+\"_\"+$json.store+\"_\"+$('Loop Over Items').context.currentRunIndex}}"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        4144,
+        480
+      ],
+      "id": "8981c94b-d3bf-4691-ae02-381c9d8dace1",
+      "name": "item hash"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "HrYG6SjfTatKOnGe",
+          "mode": "list",
+          "cachedResultName": "grocery-receipts",
+          "cachedResultUrl": "/projects/U3cGNfu5oKizTFKu/datatables/HrYG6SjfTatKOnGe"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "hash",
+              "keyValue": "={{ $json.data }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3936,
+        -240
+      ],
+      "id": "827b0a11-8e53-467b-b0b2-b3a7be86b6a6",
+      "name": "Get row(s)",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dc740d6a-cdda-4e53-8894-295a38969ce5",
+              "leftValue": "={{ $json.hash }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4128,
+        -240
+      ],
+      "id": "dbabbdad-5bbb-4a43-9b08-dfe11f3ff79c",
+      "name": "check if duplicate"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "HrYG6SjfTatKOnGe",
+          "mode": "list",
+          "cachedResultName": "grocery-receipts",
+          "cachedResultUrl": "/projects/U3cGNfu5oKizTFKu/datatables/HrYG6SjfTatKOnGe"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "hash": "={{ $('receipt hash').item.json.data }}",
+            "store": "={{ JSON.parse( $('payload extraction').item.json.text).receipt_store_name }}",
+            "datetime": "={{ JSON.parse( $('payload extraction').item.json.text).receipt_datetime }}",
+            "items": "={{ JSON.parse( $('payload extraction').item.json.text).receipt_number_of_items }}",
+            "cost": "={{ JSON.parse( $('payload extraction').item.json.text).receipt_total }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "hash",
+              "displayName": "hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "store",
+              "displayName": "store",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "datetime",
+              "displayName": "datetime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "items",
+              "displayName": "items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "cost",
+              "displayName": "cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4144,
+        272
+      ],
+      "id": "48f07ecf-55a8-42a7-950e-5c53aa505af2",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json.createdAt }}",
+        "format": "custom",
+        "customFormat": "dd MMM yyyy",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        4336,
+        -256
+      ],
+      "id": "89fc3aa3-30e8-46b1-b8c1-81f63b4747c6",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ JSON.parse($('payload extraction').item.json.text).receipt_datetime }}",
+        "format": "custom",
+        "customFormat": "dd MMM yyyy",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        3744,
+        16
+      ],
+      "id": "4c1b4497-70cf-4f62-a890-60c15d87892a",
+      "name": "receipt date"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/telegram-grocery-assistant-data/grocery-receipts/{{ $('receipt hash').item.json.data }}.png",
+        "dataPropertyName": "={{ $('Compression').item.binary.file_0 }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        4336,
+        272
+      ],
+      "id": "8a350395-c502-42ed-8556-0f9a5084c8db",
+      "name": "save receipt img"
+    },
+    {
+      "parameters": {
+        "description": "tool for fetching receipt information. Use start_date and end_date as YYYY-MM-DD strings. Example: for March 2026, use start_date: '2026-03-01' and end_date: '2026-03-31'",
+        "workflowId": {
+          "__rl": true,
+          "value": "7fxrvcR0rpRVD3p1",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/7fxrvcR0rpRVD3p1",
+          "cachedResultName": "telegram-grocery-receipt-lookup"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "start_date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('start_date', `Start date (YYYY-MM-DD). If not specified, use '1900-01-01'.`, 'string') }}",
+            "end_date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('end_date', `End date (YYYY-MM-DD). If not specified, use '2099-12-31'.`, 'string') }}",
+            "store_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('store_name', `The store name. If not specified, use 'ALL'.`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "start_date",
+              "displayName": "start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "end_date",
+              "displayName": "end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "store_name",
+              "displayName": "store_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        432
+      ],
+      "id": "d19329e3-4792-4644-a2a3-f4b7bd0b5008",
+      "name": "Receipt Lookup Tool"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "I did not receive a response from you. Saving purchases cancelled!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4544,
+        -80
+      ],
+      "id": "cb44e487-d866-4ccb-a578-ae27c9082388",
+      "name": "notify timeout",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "Saving purchases cancelled!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4544,
+        96
+      ],
+      "id": "4eb2f65d-b74f-405f-91bf-3ce7a0145bd7",
+      "name": "notify declined",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate sum of items\nconst items = JSON.parse($input.first().json.text).items; // The array from your AI agent\nlet calculatedSum = 0;\n\nfor (const item of items) {\n    calculatedSum += item.total_price;\n}\n\n// Extract the total found on the receipt (ensure this is passed through)\nconst receiptTotal = JSON.parse($input.first().json.text).receipt_total; \n\n// Floating point math can be tricky (e.g., 0.1 + 0.2 != 0.3)\n// Check if difference is less than 0.01 (1 cent)\nconst isVerified = Math.abs(calculatedSum - receiptTotal) < 0.01;\n\nreturn {\n    is_verified: isVerified,\n    calculated_sum: parseFloat(calculatedSum.toFixed(2)),\n    receipt_total: receiptTotal,\n    difference: parseFloat((receiptTotal - calculatedSum).toFixed(2))\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3552,
+        -240
+      ],
+      "id": "90274b06-6e28-4da1-bfe8-12e03e489b0e",
+      "name": "check"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "=Receipt already processed on {{ $json.formattedDate }}. Save cancelled!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4544,
+        -256
+      ],
+      "id": "3a946620-62cd-466f-9a4f-8b74e62dd17b",
+      "name": "notify duplicate",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "limitWaitTime": true,
+        "resumeAmount": 30,
+        "resumeUnit": "seconds",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4128,
+        16
+      ],
+      "id": "fdf2cc6e-e356-431f-9b0c-ce95529a8cea",
+      "name": "wait for user",
+      "webhookId": "5316c7df-21c4-401f-b656-abe48dcc0d24"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map through all binary keys and create a separate item for each\nreturn Object.keys(items[0].binary).map(key => {\n  return {\n    json: { fileName: key }, // Keeps the original filename for reference\n    binary: { \n      // Put the specific binary file into a consistent property name 'ocr_image'\n      ocr_image: items[0].binary[key] \n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        -256
+      ],
+      "id": "1ae95543-b6a0-493d-8568-73d9f86706e7",
+      "name": "split"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This takes the 'text' field from all incoming items \n// and joins them together into one single string.\nconst allText = items.map(item => item.json.text).join('\\n\\n--- New Image ---\\n\\n');\n\nreturn {\n  combinedText: allText\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        -256
+      ],
+      "id": "9c1200cb-6ad5-4741-bd85-21dd227bea90",
+      "name": "aggregate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dc740d6a-cdda-4e53-8894-295a38969ce5",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "not a grocery receipt",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3328,
+        -256
+      ],
+      "id": "b2fd38d3-11fa-482b-aaed-8c0ee473d448",
+      "name": "check if not grocery receipt"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "=The receipt is not a grocery receipt!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3744,
+        -432
+      ],
+      "id": "bc9236c6-9944-4103-ab00-650263aae6e2",
+      "name": "notify wrong receipt",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    },
+                    "id": "9ced93a1-913f-4772-8a89-f6d01119f9e9"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "00630711-f081-4779-8163-7ef789cc8d65",
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "decline",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "aba18c3b-5a9b-463f-a943-706fe240ad95",
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        4336,
+        0
+      ],
+      "id": "4369fdab-875d-48bb-b462-dd2435c22f29",
+      "name": "Switch user response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}",
+        "text": "Unknown file type!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1840,
+        -80
+      ],
+      "id": "b783c28d-9565-482d-9b97-50ce80f68ae1",
+      "name": "notify unknown file type",
+      "webhookId": "b93d01f5-5aa1-47c9-8265-ba1bb4bfe834",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e19a79d6-4199-4892-9285-4e3419ea3c54",
+              "leftValue": "={{ $binary.data.fileExtension }}",
+              "rightValue": "pdf",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1648,
+        -160
+      ],
+      "id": "8bf8108c-15fa-4352-9ed2-19a5a7648647",
+      "name": "check pdf"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "9ced93a1-913f-4772-8a89-f6d01119f9e9"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "00630711-f081-4779-8163-7ef789cc8d65",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.photo }}",
+                    "rightValue": "decline",
+                    "operator": {
+                      "type": "array",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "aba18c3b-5a9b-463f-a943-706fe240ad95",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.document }}",
+                    "rightValue": "approve",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1168,
+        -272
+      ],
+      "id": "7313561d-e41d-4c8b-b063-0dcee01c12ba",
+      "name": "Switch trigger"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.photo.last().file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2016,
+        -416
+      ],
+      "id": "1ae1c6b5-052d-4a41-a72b-e0aae095a427",
+      "name": "Get photo",
+      "webhookId": "1998888c-c0c6-41f1-a51b-f476650b3af1",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $('project_vars').item.json.data.telegram_chat_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3552,
+        -432
+      ],
+      "id": "014af709-fc8c-48dd-97b0-6f0ecde6efc0",
+      "name": "Send a chat action5",
+      "webhookId": "a7685888-8d38-491f-bd71-33be00040a2c",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "call this tool to check product promotions and discounts from grocery stores nearby. inputs are the product name in german, zipcode, and requested stores where to check the offers. output would be 10 products with its name, price, store, and valid until date",
+        "workflowId": {
+          "__rl": true,
+          "value": "d4x8zMtrwkBLK2rF",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/d4x8zMtrwkBLK2rF",
+          "cachedResultName": "telegram-grocery-nearby-offers"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "zipCode": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('zipCode', `zipcode or postal code of the area where the offer is. if not mentioned by user, use 60326 by default and only mention that you looked for offer near user's home. Do not mention the default zipcode`, 'number') }}",
+            "itemName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('itemName', `product or item name to be searched for offers. try german name first, then also try english name`, 'string') }}",
+            "storeArray": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('storeArray', `stores where the offers might be in the form of an array. Possible values: \"lidl\", \"netto-marken-discount\", \"aldi-sued\", \"aldi-nord\", \"penny\", \"norma\", \"REWE\", \"EDEKA, \"kaufland\". If not mentioned or all stores, use [\"ALL\"]`, 'json') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "zipCode",
+              "displayName": "zipCode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "itemName",
+              "displayName": "itemName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "storeArray",
+              "displayName": "storeArray",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        592
+      ],
+      "id": "e15c5449-9883-4632-b196-0952717fa998",
+      "name": "Nearby Offers Tool"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to search for grocery items or products within the user's purchase history. This tool is effective for finding items by name, category, or general description (e.g., 'What was the price of the ketchup I bought?'). It performs a semantic search against the product database.",
+        "workflowId": {
+          "__rl": true,
+          "value": "4tndtMCaTjosL7K9",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4tndtMCaTjosL7K9",
+          "cachedResultName": "telegram-grocery-vector-search"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "top_k": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('top_k', `The maximum number of relevant items to return. Use a low number (e.g., 2–3) for specific, direct answers. Use a higher number (e.g., 5–10) if the user is asking for a list, browsing options.`, 'number') }}",
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', `A detailed description or the name of the product you are looking for. Example: 'Italian pasta sauce' or 'Organic snacks'.`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "top_k",
+              "displayName": "top_k",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        432
+      ],
+      "id": "39046e19-8a0f-4f62-95e7-a15af4910020",
+      "name": "Similarity Search Tool"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to retrieve the file or image of a receipt using its hash. Input should be the receipt_hash. If successful, assume that the file or image has been already provided to the user",
+        "workflowId": {
+          "__rl": true,
+          "value": "C0JcbVypkrbUTPIr",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/C0JcbVypkrbUTPIr",
+          "cachedResultName": "telegram-grocery-show-receipt"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "receipt_hash": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('receipt_hash', `receipt hash coming from receipt lookup tool that corresponds to the file or image of the receipt`, 'string') }}"
+          },
+          "matchingColumns": [
+            "receipt_hash"
+          ],
+          "schema": [
+            {
+              "id": "receipt_hash",
+              "displayName": "receipt_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1984,
+        592
+      ],
+      "id": "adc44714-6061-4e4f-985f-102f52820a53",
+      "name": "Get Receipt Image Tool"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        576,
+        -240
+      ],
+      "id": "3814bf7d-7f44-47fa-80df-3e3ba2796f0b",
+      "name": "Telegram Trigger",
+      "webhookId": "55f8865c-b046-4779-91e9-fe19fa064f2b",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZbDaPgtdhzX6aHmx",
+          "name": "Telegram grocery bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/telegram-grocery-assistant-data/project_vars.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        -240
+      ],
+      "id": "52239f97-8166-4396-a9c3-38db79bdc46b",
+      "name": "read project vars"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        -240
+      ],
+      "id": "2a9e2db9-9d6a-4603-8ebf-bec0bbac51b7",
+      "name": "project_vars"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "pdf to img zipped": {
+      "main": [
+        [
+          {
+            "node": "Compression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compression": {
+      "main": [
+        [
+          {
+            "node": "split",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a chat action1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "check pdf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify OCR start": {
+      "main": [
+        [
+          {
+            "node": "pdf to img zipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM OCR",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM OCR": {
+      "main": [
+        [
+          {
+            "node": "aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "payload extraction": {
+      "main": [
+        [
+          {
+            "node": "check if not grocery receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "item hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Points": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "embeddings": {
+      "main": [
+        [
+          {
+            "node": "Upsert Points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify upsert start": {
+      "main": [
+        [
+          {
+            "node": "array_parsing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "array_parsing": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "payload extraction",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "send response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Database Query Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a chat action": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify OCR": {
+      "main": [
+        []
+      ]
+    },
+    "Send a chat action1": {
+      "main": [
+        [
+          {
+            "node": "notify OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a chat action2": {
+      "main": [
+        [
+          {
+            "node": "notify OCR1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify OCR1": {
+      "main": [
+        []
+      ]
+    },
+    "confirm": {
+      "main": [
+        [
+          {
+            "node": "wait for user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Query a callback": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "item hash": {
+      "main": [
+        [
+          {
+            "node": "embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "receipt hash": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "check if duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check if duplicate": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "receipt date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "notify duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "save receipt img",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "receipt date": {
+      "main": [
+        [
+          {
+            "node": "confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save receipt img": {
+      "main": [
+        [
+          {
+            "node": "notify upsert done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receipt Lookup Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check": {
+      "main": [
+        [
+          {
+            "node": "receipt hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wait for user": {
+      "main": [
+        [
+          {
+            "node": "Switch user response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split": {
+      "main": [
+        [
+          {
+            "node": "LLM OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aggregate": {
+      "main": [
+        [
+          {
+            "node": "payload extraction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a chat action2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check if not grocery receipt": {
+      "main": [
+        [
+          {
+            "node": "Send a chat action5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch user response": {
+      "main": [
+        [
+          {
+            "node": "notify timeout",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify declined",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify upsert start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check pdf": {
+      "main": [
+        [
+          {
+            "node": "notify OCR start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify unknown file type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch trigger": {
+      "main": [
+        [
+          {
+            "node": "Answer Query a callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get photo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a chat action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get photo": {
+      "main": [
+        [
+          {
+            "node": "split",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a chat action1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a chat action5": {
+      "main": [
+        [
+          {
+            "node": "notify wrong receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nearby Offers Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Similarity Search Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Receipt Image Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "read project vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read project vars": {
+      "main": [
+        [
+          {
+            "node": "project_vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "project_vars": {
+      "main": [
+        [
+          {
+            "node": "Switch trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "zWhcjw3kSAmdZ1ok"
+  },
+  "versionId": "e464a367-24bc-407f-91df-ee8bd10f6ada",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62dd45111b6dfe563b93c2ec57632c8b7008513075549940653e8e75585890a2"
+  },
+  "id": "dMbQDJXaN2FCMuO8",
+  "tags": [
+    {
+      "updatedAt": "2026-03-22T10:33:13.477Z",
+      "createdAt": "2026-03-22T10:33:13.477Z",
+      "id": "a7CLUAUl3uuJAC4s",
+      "name": "telegram-grocery"
+    }
+  ]
+}

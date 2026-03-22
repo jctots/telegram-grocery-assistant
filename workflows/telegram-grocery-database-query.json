@@ -1,0 +1,134 @@
+{
+  "name": "telegram-grocery-database-query",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "store"
+            },
+            {
+              "name": "category"
+            },
+            {
+              "name": "min_price",
+              "type": "number"
+            },
+            {
+              "name": "max_price",
+              "type": "number"
+            },
+            {
+              "name": "start_date"
+            },
+            {
+              "name": "end_date"
+            },
+            {
+              "name": "sort_by"
+            },
+            {
+              "name": "sort_order"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "point",
+        "operation": "scrollPoints",
+        "collectionName": {
+          "__rl": true,
+          "value": "grocery-assistant",
+          "mode": "list",
+          "cachedResultName": "grocery-assistant"
+        },
+        "filter": "={{\n  (() => {\n    const filters = [];\n    \n    // Add filters only if they are NOT the \"ignore\" values\n    if ($json.store !== 'ALL') filters.push({ key: \"store\", match: { value: $json.store } });\n    if ($json.category !== 'ALL') filters.push({ key: \"category\", match: { value: $json.category } });\n    \n    if ($json.min_price > 0 || $json.max_price < 99999) {\n      filters.push({ key: \"total_price\", range: { gte: $json.min_price, lte: $json.max_price } });\n    }\n    \n    if ($json.start_date !== '1900-01-01' || $json.end_date !== '2099-12-31') {\n      filters.push({ key: \"purchase_date\", range: { gte: $json.start_date, lte: $json.end_date } });\n    }\n\n    // If filters exist, return the structure; otherwise, return nothing (empty object)\n    return filters.length > 0 ? JSON.stringify({ must: filters }) : undefined;\n  })()\n}}",
+        "orderBy": "={{\n  ($json.sort_by && $json.sort_by !== 'NONE') ? \n  { \n    \"key\": $json.sort_by, \n    \"direction\": ($json.sort_order || \"desc\")\n  } : undefined\n}}",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-qdrant.qdrant",
+      "typeVersion": 1,
+      "position": [
+        496,
+        352
+      ],
+      "id": "677de874-e5bc-4178-bd9d-8500a33022a3",
+      "name": "Filtered Search",
+      "alwaysOutputData": true,
+      "credentials": {
+        "qdrantRestApi": {
+          "id": "OVbOfpAsRTGZ7kXG",
+          "name": "Qdrant account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "max_price": 99999,
+          "min_price": 0,
+          "category": "ALL",
+          "sort_order": "desc",
+          "sort_by": "purchase_date",
+          "end_date": "2026-01-05",
+          "start_date": "2026-01-05",
+          "store": "ALL"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Filtered Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtered Search": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "zWhcjw3kSAmdZ1ok",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "versionId": "58aabd57-3338-49a6-b36d-c3d73f15d4c9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62dd45111b6dfe563b93c2ec57632c8b7008513075549940653e8e75585890a2"
+  },
+  "id": "L42gLmsXii0dRRPT",
+  "tags": [
+    {
+      "updatedAt": "2026-03-22T10:33:13.477Z",
+      "createdAt": "2026-03-22T10:33:13.477Z",
+      "id": "a7CLUAUl3uuJAC4s",
+      "name": "telegram-grocery"
+    }
+  ]
+}

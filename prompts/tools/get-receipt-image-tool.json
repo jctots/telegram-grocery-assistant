@@ -1,0 +1,14 @@
+{
+  "id": "get-receipt-image-tool",
+  "name": "Get Receipt Image Tool",
+  "description": "Use this tool to retrieve the file or image of a receipt using its hash. Input should be the receipt_hash. If successful, assume that the file or image has been already provided to the user.",
+  "inputs": [
+    {
+      "name": "receipt_hash",
+      "type": "string",
+      "required": true,
+      "description": "Receipt hash coming from receipt lookup tool that corresponds to the file or image of the receipt."
+    }
+  ],
+  "workflowId": "C0JcbVypkrbUTPIr"
+}

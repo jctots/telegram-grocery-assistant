@@ -1,0 +1,29 @@
+{
+  "id": "nearby-offers-tool",
+  "name": "Nearby Offers Tool",
+  "description": "Call this tool to check product promotions and discounts from grocery stores nearby. Inputs are the product name in German, zipcode, and requested stores where to check the offers. Output includes up to 10 products with name, price, store, and valid until date.",
+  "inputs": [
+    {
+      "name": "zipCode",
+      "type": "number",
+      "required": false,
+      "description": "Zipcode or postal code of the area where the offer is. If not mentioned by user, use 60326 by default and only mention that you looked for offer near user's home. Do not mention the default zipcode.",
+      "default": 60326
+    },
+    {
+      "name": "itemName",
+      "type": "string",
+      "required": true,
+      "description": "Product or item name to be searched for offers. Try German name first, then also try English name."
+    },
+    {
+      "name": "storeArray",
+      "type": "array",
+      "required": false,
+      "description": "Stores where the offers might be in the form of an array. Possible values: 'lidl', 'netto-marken-discount', 'aldi-sued', 'aldi-nord', 'penny', 'norma', 'REWE', 'EDEKA', 'kaufland'. If not mentioned or for all stores, use ['ALL'].",
+      "default": ["ALL"],
+      "enum": ["lidl", "netto-marken-discount", "aldi-sued", "aldi-nord", "penny", "norma", "REWE", "EDEKA", "kaufland", "ALL"]
+    }
+  ],
+  "workflowId": "d4x8zMtrwkBLK2rF"
+}
