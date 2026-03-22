@@ -40,7 +40,20 @@ The AI agent uses specialized tools for different query types:
 - **Nearby Offers Tool**: Location-based shopping suggestions
 - **Receipt Image Tool**: Retrieve and display receipt images
 
-## 🚀 Quick Start
+## �️ Workflow Previews
+
+Explore the visual workflows on n8n's sharing platform:
+
+- **[Main Flow](https://share-n8n.com/shared/X2t4oiJmW6hz)** - Complete orchestration workflow handling Telegram messages, OCR processing, and AI responses
+- **[Nearby Offers](https://share-n8n.com/shared/WlRh5D6ilvyk)** - Location-based shopping suggestions workflow
+- **[Database Query](https://share-n8n.com/shared/Dk4KthiObBtH)** - Database operations for storing and retrieving purchase data
+- **[Receipt Lookup](https://share-n8n.com/shared/AtXmM0OBZGob)** - Receipt-specific queries and image retrieval
+- **[Vector Search](https://share-n8n.com/shared/TEQRE4I4V6Af)** - Similarity search for finding related purchases
+- **[Show Receipt](https://share-n8n.com/shared/CZHX9eQ5VHFM)** - Receipt image display functionality
+
+*Note: All workflows can be previewed and shared via [share-n8n.com](https://share-n8n.com/). Individual workflow links may vary - check the latest shared versions.*
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
